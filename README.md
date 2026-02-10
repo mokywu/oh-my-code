@@ -6,7 +6,7 @@
 
 - **零依赖** — 纯 Python 标准库，无需 `pip install`
 - **Agentic Loop** — AI 自主调用工具，循环执行直到任务完成
-- **6 个内置工具** — 读写文件、文本替换、文件搜索、正则搜索、Shell 命令
+- **8 个内置工具** — 读写文件、文本替换、文件搜索、正则搜索、Shell 命令、网页搜索、网页浏览
 - **美化终端输出** — ANSI 彩色渲染，支持 Markdown 代码块、标题、列表等
 - **多 API 支持** — 兼容 Anthropic / OpenRouter / Kimi 等 Claude Messages API 格式
 
@@ -22,6 +22,8 @@ python index.py
 |------|------|
 | `/q` 或 `exit` | 退出程序 |
 | `/c` | 清空当前对话 |
+| `/debug` | 切换 Debug 模式（显示工具返回的详细数据） |
+| `/help` | 显示帮助信息 |
 
 ## 配置
 
@@ -49,6 +51,8 @@ API_KEY = "your-kimi-key"
 | `glob` | 按模式查找文件，按修改时间排序 |
 | `grep` | 正则搜索文件内容 |
 | `bash` | 执行 Shell 命令（30s 超时） |
+| `search` | 网页搜索（支持 DuckDuckGo/Bing/SearX） |
+| `browse` | 访问指定网页并提取文本内容 |
 
 ## 项目结构
 

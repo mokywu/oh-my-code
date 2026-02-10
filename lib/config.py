@@ -24,3 +24,6 @@ SYSTEM_PROMPT_TEMPLATE = "Concise coding assistant. cwd: {cwd}"
 
 # 命令超时（秒）
 BASH_TIMEOUT = 30
+
+# Debug 模式（显示工具调用的详细数据）
+DEBUG_MODE = False
