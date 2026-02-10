@@ -20,10 +20,13 @@ MAX_TOKENS = 8192
 API_VERSION = "2023-06-01"
 
 # 系统提示词模板
-SYSTEM_PROMPT_TEMPLATE = "Concise coding assistant. cwd: {cwd}"
+SYSTEM_PROMPT_TEMPLATE = "Concise coding assistant. cwd: {cwd}, platform: {platform}"
 
 # 命令超时（秒）
 BASH_TIMEOUT = 30
 
 # Debug 模式（显示工具调用的详细数据）
 DEBUG_MODE = False
+
+# 流式输出（LLM 逐字返回）
+STREAM_MODE = True
