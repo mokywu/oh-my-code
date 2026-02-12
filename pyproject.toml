@@ -1,0 +1,20 @@
+[project]
+name = "oh-my-code"
+version = "0.1.0"
+description = "Lightweight terminal AI coding assistant with agentic tool loop"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.10"
+dependencies = [
+    "mcp>=1.0.0",
+]
+
+[project.scripts]
+oh-my-code = "lib.agent:run"
+
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["lib*"]
