@@ -30,3 +30,14 @@ DEBUG_MODE = False
 
 # 流式输出（LLM 逐字返回）
 STREAM_MODE = True
+
+# 工具注册表
+MCP_SERVERS = {
+    "chrome-devtools-mcp": {
+      "args": [
+        "--port",
+        "8081"
+      ],
+      "command": "chrome-devtools-mcp"
+    }
+}

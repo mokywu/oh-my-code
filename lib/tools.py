@@ -4,6 +4,8 @@ from .tool_file import tool_edit, tool_glob, tool_grep, tool_read, tool_write
 from .tool_shell import tool_bash
 from .tool_web import tool_browse, tool_search
 from .tool_fs import get_platform, tool_fs
+from .tool_mcp import tool_mcp
+
 
 
 # 每个工具：(描述, 参数 schema 简写, 实现函数)
@@ -63,15 +65,39 @@ TOOLS = {
         },
         tool_fs,
     ),
+    "mcp": (
+        "MCP tool management",
+        {"action": "string?", "server": "string?", "tool": "string?", "arguments": "object?"},
+        tool_mcp,
+    ),
 }
+
 
 
 def run_tool(name, args):
     """执行指定工具，捕获异常返回错误信息。"""
-    try:
-        return TOOLS[name][2](args)
-    except Exception as err:
-        return f"error: {err}"
+    # 内置工具
+    if name in TOOLS:
+        try:
+            return TOOLS[name][2](args)
+        except Exception as err:
+            return f"error: {err}"
+    
+    # MCP 工具 (格式: mcp__server__tool)
+    if name.startswith("mcp__"):
+        try:
+            from .mcp_client import get_mcp_manager
+            m = get_mcp_manager()
+            resolved = m.resolve_tool(name)
+            if resolved:
+                server, tool = resolved
+                return m.call(server, tool, args)
+            return f"error: unknown MCP tool: {name}"
+        except Exception as err:
+            return f"error: {err}"
+    
+    return f"error: 未知工具 '{name}'"
+
 
 
 def make_schema():
@@ -99,4 +125,13 @@ def make_schema():
                 },
             }
         )
+    
+    # 添加 MCP 工具
+    try:
+        from .mcp_client import get_mcp_manager
+        result.extend(get_mcp_manager().get_tools())
+    except:
+        pass
+    
     return result
+

@@ -24,7 +24,7 @@ def _handle_tool_block(block, debug_mode=False):
     """执行工具调用并打印结果摘要，返回 tool_result dict。"""
     tool_name = block["name"]
     tool_args = block["input"]
-    arg_preview = str(list(tool_args.values())[0])[:50]
+    arg_preview = str(list(tool_args.values())[0])[:50] if tool_args else "(no args)"
 
     print(f"\n  {GREEN}⚙ {BOLD}{tool_name}{RESET} {DIM}→ {arg_preview}{RESET}")
     print(f"  {DIM}┊{RESET}")
@@ -114,6 +114,13 @@ def _agent_loop(messages, system_prompt, debug_mode=False, stream=True):
 def run():
     """应用入口：打印 Banner，进入交互循环。"""
     print_banner()
+    
+    # 初始化 MCP
+    try:
+        from .mcp_client import init_mcp
+        init_mcp()
+    except:
+        pass
 
     messages = []
     system_prompt = SYSTEM_PROMPT_TEMPLATE.format(cwd=os.getcwd(), platform=get_platform())
@@ -129,7 +136,14 @@ def run():
 
             if user_input in ("/q", "exit"):
                 print(f"\n  {DIM}👋 Bye!{RESET}\n")
+                # 清理 MCP
+                try:
+                    from .mcp_client import get_mcp_manager
+                    get_mcp_manager().shutdown()
+                except:
+                    pass
                 break
+
 
             if user_input == "/c":
                 messages = []
