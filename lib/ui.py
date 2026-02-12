@@ -111,5 +111,5 @@ def print_banner():
     print(f"{BOLD}{CYAN}  ╚{'═' * inner}╝{RESET}")
     print()
     print(f"  {DIM}📂 {os.getcwd()}{RESET}")
-    print(f"  {DIM}💡 输入 /q 退出  /c 清空对话{RESET}")
+    print(f"  {DIM}💡 输入 /q 退出  /c 清空对话 /mcp 查看mcp工具 {RESET}")
     print()

@@ -162,12 +162,30 @@ def run():
                 print(f"\n  {CYAN}📡 流式输出已{status}{RESET}\n")
                 continue
 
+            if user_input == "/mcp":
+                try:
+                    from .mcp_client import get_mcp_manager
+                    m = get_mcp_manager()
+                    if not m.clients:
+                        print(f"\n  {DIM}No MCP servers running{RESET}\n")
+                    else:
+                        for name, client in m.clients.items():
+                            print(f"\n  {CYAN}{BOLD}{name}{RESET} ({len(client.tools)} tools)")
+                            for t in client.tools:
+                                desc = t.get("description", "")[:60]
+                                print(f"  {DIM}  - {t['name']}{RESET}  {desc}")
+                        print()
+                except Exception as e:
+                    print(f"\n  {RED}MCP error: {e}{RESET}\n")
+                continue
+
             if user_input == "/help":
                 print(f"\n  {CYAN}可用命令:{RESET}")
                 print(f"  {DIM}/q, exit{RESET}  - 退出程序")
                 print(f"  {DIM}/c{RESET}        - 清空对话")
                 print(f"  {DIM}/debug{RESET}    - 切换 Debug 模式（显示工具返回的详细数据）")
                 print(f"  {DIM}/stream{RESET}   - 切换流式输出")
+                print(f"  {DIM}/mcp{RESET}      - 查看 MCP 工具列表")
                 print(f"  {DIM}/help{RESET}     - 显示此帮助信息")
                 print()
                 continue
