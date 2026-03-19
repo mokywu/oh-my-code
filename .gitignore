@@ -19,3 +19,8 @@ build/
 # OS
 .DS_Store
 Thumbs.db
+
+# Workbench runtime data
+.oh_my_code/
+
+node_modules

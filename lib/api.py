@@ -1,17 +1,41 @@
 """封装与 LLM API 的通信。"""
 
 import json
+import http.client
 import urllib.request
+import urllib.error
+
 
 from .config import API_KEY, API_URL, API_VERSION, MAX_TOKENS, MODEL, OPENROUTER_KEY
 from .tools import make_schema
 
 
-def _build_headers(stream=False):
+def _read_response_bytes(response):
+    """读取响应字节，容忍服务端提前断开连接。"""
+    try:
+        return response.read()
+    except http.client.IncompleteRead as e:
+        return e.partial
+
+
+def _read_stream_chunk(response, chunk_size):
+    """读取流式响应块，容忍服务端提前断开连接。"""
+    try:
+        return response.read(chunk_size), False
+    except http.client.IncompleteRead as e:
+        return e.partial, True
+
+
+def _build_headers(api_key=None, stream=False):
+
+    """构建请求头，支持自定义 API Key。"""
+    key = api_key or API_KEY
+    use_openrouter = OPENROUTER_KEY and not api_key  # 使用自定义 key 时不走 openrouter
+    
     auth = (
         {"Authorization": f"Bearer {OPENROUTER_KEY}"}
-        if OPENROUTER_KEY
-        else {"x-api-key": API_KEY}
+        if use_openrouter
+        else {"x-api-key": key}
     )
     h = {
         "Content-Type": "application/json",
@@ -23,38 +47,69 @@ def _build_headers(stream=False):
     return h
 
 
-def call_api(messages, system_prompt):
-    """发送消息到 LLM API 并返回解析后的 JSON 响应。"""
+def call_api(messages, system_prompt, api_key=None, model=None, api_url=None, max_tokens=None, for_cto=False):
+    """发送消息到 LLM API 并返回解析后的 JSON 响应。
+    
+    Args:
+        messages: 消息列表
+        system_prompt: 系统提示
+        api_key: 可选的自定义 API Key
+        model: 可选的自定义模型
+        api_url: 可选的自定义 API 地址
+        max_tokens: 可选的最大 token 数
+        for_cto: 是否为 CTO 调用（使用受限工具列表）
+    """
+    from .config import MAX_TOKENS as DEFAULT_MAX_TOKENS
+    
+    url = api_url or API_URL
+    use_model = model or MODEL
+    use_max_tokens = max_tokens or DEFAULT_MAX_TOKENS
+    
     request = urllib.request.Request(
-        API_URL,
+        url,
         data=json.dumps(
             {
-                "model": MODEL,
-                "max_tokens": MAX_TOKENS,
+                "model": use_model,
+                "max_tokens": use_max_tokens,
                 "system": system_prompt,
                 "messages": messages,
-                "tools": make_schema(),
+                "tools": make_schema(for_cto=for_cto),
             }
         ).encode(),
-        headers=_build_headers(),
+        headers=_build_headers(api_key=api_key),
     )
-    response = urllib.request.urlopen(request)
-    return json.loads(response.read())
+    try:
+        response = urllib.request.urlopen(request)
+        body = _read_response_bytes(response)
+        return json.loads(body.decode("utf-8", errors="replace"))
+    except urllib.error.HTTPError as e:
+        error_body = e.read().decode("utf-8", errors="replace")
+        print(f"\n✖ API Error {e.code}: {e.reason}")
+        print(f"  Response: {error_body}")
+        raise
+    except json.JSONDecodeError as e:
+        raise RuntimeError(f"API 响应不是有效 JSON: {e}") from e
 
 
-def call_api_stream(messages, system_prompt):
+
+def call_api_stream(messages, system_prompt, for_cto=False):
     """
     流式请求，生成 (event_type, data)。
     event_type: "text_delta" | "content_blocks"
     - text_delta: data 为字符串，直接打印
     - content_blocks: data 为完整 content_blocks 列表，用于后续工具调用
+    
+    Args:
+        messages: 消息列表
+        system_prompt: 系统提示
+        for_cto: 是否为 CTO 调用（使用受限工具列表）
     """
     req_body = {
         "model": MODEL,
         "max_tokens": MAX_TOKENS,
         "system": system_prompt,
         "messages": messages,
-        "tools": make_schema(),
+        "tools": make_schema(for_cto=for_cto),
         "stream": True,
     }
     request = urllib.request.Request(
@@ -62,7 +117,13 @@ def call_api_stream(messages, system_prompt):
         data=json.dumps(req_body).encode(),
         headers=_build_headers(stream=True),
     )
-    response = urllib.request.urlopen(request)
+    try:
+        response = urllib.request.urlopen(request)
+    except urllib.error.HTTPError as e:
+        error_body = e.read().decode("utf-8", errors="replace")
+        print(f"\n✖ API Error {e.code}: {e.reason}")
+        print(f"  Response: {error_body}")
+        raise
 
     content_blocks = []
     current_block = None
@@ -86,9 +147,13 @@ def call_api_stream(messages, system_prompt):
     event_type = None
 
     while True:
-        chunk = response.read(4096).decode("utf-8", errors="replace")
-        if not chunk:
+        chunk_bytes, reached_end = _read_stream_chunk(response, 4096)
+
+
+        if not chunk_bytes:
             break
+
+        chunk = chunk_bytes.decode("utf-8", errors="replace")
         buffer += chunk
         while "\n" in buffer or "\r" in buffer:
             line, _, buffer = buffer.partition("\n")
@@ -138,6 +203,10 @@ def call_api_stream(messages, system_prompt):
                     yield ("error", err.get("message", str(err)))
                     return
                 event_type = None
+
+        if reached_end:
+            break
+
 
     _finalize_block()
     if content_blocks:

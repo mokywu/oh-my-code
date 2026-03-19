@@ -2,6 +2,11 @@
 
 import os
 import re
+import sys
+
+# Windows 终端 UTF-8 支持
+if sys.platform == "win32":
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 
 from .colors import (
     BG_GRAY, BOLD, CYAN, DIM, GREEN, ITALIC, MAGENTA, RESET, WHITE, YELLOW,
